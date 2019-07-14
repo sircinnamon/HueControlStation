@@ -5,10 +5,8 @@ from phue import Bridge
 import threading
 import random
 import time
-
-from sense_hat import SenseHat, ACTION_PRESSED, ACTION_HELD, ACTION_RELEASED
+import skywriter
 from signal import pause
-sense = SenseHat()
 
 b = Bridge('10.0.0.80')
 b.connect() #Comment out after first run
@@ -93,51 +91,54 @@ def play_scene_random_independent(scene, light, start_index):
 current_hue=2000
 def pushed_up(event):
     print("PUSHED UP")
-    if event.action == ACTION_PRESSED:
-        command = {
-            "on":True
-        }
-        for l in lights:
-            b.set_light(l.light_id, command)
+    command = {
+        "on":True
+    }
+    for l in lights:
+        b.set_light(l.light_id, command)
 
 def pushed_right(event):
     global current_hue
     print("PUSHED RIGHT {}".format(current_hue))
-    if event.action == ACTION_PRESSED:
-        current_hue = max(current_hue+1000, 0)
-        command = {
-            "hue": current_hue,
-            "sat": 126,
-            "bri": 255
-        }
-        for l in lights:
-            b.set_light(l.light_id, command)
+    current_hue = max(current_hue+3000, 0)
+    command = {
+        "hue": current_hue,
+        "sat": 126,
+        "bri": 255
+    }
+    for l in lights:
+        b.set_light(l.light_id, command)
 
 def pushed_down(event):
     print("PUSHED DOWN")
-    if event.action == ACTION_PRESSED:
-        command = {
-            "on":False
-        }
-        for l in lights:
-            b.set_light(l.light_id, command)
+    command = {
+        "on":False
+    }
+    for l in lights:
+        b.set_light(l.light_id, command)
 
 def pushed_left(event):
     global current_hue
-    print("PUSHED LEFT {}".format(current_hue))
-    if event.action == ACTION_PRESSED:
-        current_hue = max(current_hue-1000, 0)
-        command = {
-            "hue": current_hue,
-            "sat": 126,
-            "bri": 255
-        }
-        for l in lights:
-            b.set_light(l.light_id, command)
+    print("PUSHED LEFT")
+    current_hue = max(current_hue-3000, 0)
+    command = {
+        "hue": current_hue,
+        "sat": 126,
+        "bri": 255
+    }
+    for l in lights:
+        b.set_light(l.light_id, command)
 
-sense.stick.direction_up = pushed_up
-sense.stick.direction_down = pushed_down
-sense.stick.direction_left = pushed_left
-sense.stick.direction_right = pushed_right
+@skywriter.flick()
+def flick(start, finish):
+    o = start[0]+finish[0]
+    if(o == "sn"):
+        pushed_up("sn")
+    elif(o == "ns"):
+        pushed_down("ns")
+    elif(o == "we"):
+        pushed_right("we")
+    elif(o == "ew"):
+        pushed_left("ew")
 
 pause()
