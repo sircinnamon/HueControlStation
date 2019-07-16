@@ -10,27 +10,22 @@ from queue import Queue
 
 # b = Bridge('10.0.0.80')
 # b.connect() #Comment out after first run
-q = Queue()
-threshold = 0.55
+q = Queue(maxsize=200)
+threshold = 0.8
 
 @skywriter.move()
 def move(x, y, z):
-    # print( x, y, z )
-    if q.full(): q.get()
-    q.put({
-    	"time": datetime.datetime.now().timestamp(),
-    	"x": x,
-    	"y": y
-    });
-    if check_wave(list(q.queue), "x"):
-    	print("X WAVE")
-    	q.queue.clear()
-    if check_wave(list(q.queue), "y"):
-    	print("Y WAVE")
-    	q.queue.clear()
+	# print( x, y, z )
+	if q.full(): q.get()
+	q.put({
+		"time": datetime.datetime.now().timestamp(),
+		"x": x,
+		"y": y
+	});
 
 def check_wave(l, axis):
-	l = l[::-1]
+	# l = l[::-1]
+	print(len(l))
 	# print(l)
 	if(len(l)<2): return False
 	prev = l[0][axis]
@@ -54,10 +49,25 @@ def check_wave(l, axis):
 		else:
 			break
 	# print("Broke at {}".format(i))
+	# print("THRESH {}".format(threshold))
 	# print(delta)
 	# Everything from 0 to i should be part of the gesture
 	if (abs(l[0][axis] - l[i][axis]) > threshold):
 		# Gesture was long enough
+		print("Dist {}".format(abs(l[0][axis] - l[i][axis])))
 		return True
+	if((datetime.datetime.now().timestamp() - l[1]["time"]) < 0.75):
+		return check_wave(l[1:], axis)
+
+while True:
+	time.sleep(0.5)
+	if check_wave(list(q.queue)[::-1], "x"):
+		print("X WAVE")
+		q.queue.clear()
+		input()
+	if check_wave(list(q.queue)[::-1], "y"):
+		print("Y WAVE")
+		q.queue.clear()
+		input()
 
 pause()
