@@ -5,7 +5,7 @@ import threading
 import random
 import time, datetime
 import skywriter
-from signal import pause
+import signal
 from queue import Queue
 import requests
 import json
@@ -78,6 +78,18 @@ def move(x, y, z):
 		"y": y
 	});
 
+@skywriter.flick()
+def flick(start, finish):
+    o = start[0]+finish[0]
+    if(o == "sn"):
+        print("flick sn")
+    elif(o == "ns"):
+        print("flick ns")
+    elif(o == "we"):
+        print("flick we")
+    elif(o == "ew"):
+        print("flick ew")
+
 def check_wave(l, axis):
 	# l = l[::-1]
 	# print(len(l))
@@ -110,7 +122,7 @@ def check_wave(l, axis):
 	if (abs(l[0][axis] - l[i][axis]) > threshold):
 		# Gesture was long enough
 		# print("Dist {}".format(abs(l[0][axis] - l[i][axis])))
-		return {"start":l[0], "end":l[i]}
+		return {"start":l[i], "end":l[0]}
 	if((datetime.datetime.now().timestamp() - l[1]["time"]) < 0.75):
 		return check_wave(l[1:], axis)
 
@@ -133,18 +145,18 @@ def process_actions():
 		speed = calculate_speed(wave, axis)
 		print(speed)
 		colour = [255,0,0]
-		if(speed>1):colour = [255,255,0]
-		if(speed>2):colour = [0,255,0]
+		if(speed>20):colour = [225,225,0]
+		if(speed>30):colour = [0,255,0]
 		q.queue.clear()
 		if(axis=="x"):		
-			if(wave["start"]["x"] > wave["end"]["x"]):
+			if(wave["start"]["x"] < wave["end"]["x"]):
 				r_arrow[0][0] = colour
 				r = requests.post(url, data=json.dumps({"map":r_arrow}))
 			else:
 				l_arrow[0][0] = colour
 				r = requests.post(url, data=json.dumps({"map":l_arrow}))
 		if(axis=="y"):			
-			if(wave["start"]["y"] > wave["end"]["y"]):
+			if(wave["start"]["y"] < wave["end"]["y"]):
 				u_arrow[0][0] = colour
 				r = requests.post(url, data=json.dumps({"map":u_arrow}))
 			else:
