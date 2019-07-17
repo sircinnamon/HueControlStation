@@ -59,6 +59,15 @@ d_arrow = [
 ]
 url = "http://10.0.0.34:8080/post/"
 
+class Killer:
+	shutdown = False
+	def __init__(self):
+		signal.signal(signal.SIGINT, self.exit_gracefully)
+		signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+	def exit_gracefully(self, signum, frame):
+		self.shutdown = True
+
 @skywriter.move()
 def move(x, y, z):
 	# print( x, y, z )
@@ -105,28 +114,45 @@ def check_wave(l, axis):
 	if((datetime.datetime.now().timestamp() - l[1]["time"]) < 0.75):
 		return check_wave(l[1:], axis)
 
-while True:
-	time.sleep(0.5)
+def calculate_speed(wave, axis):
+	duration = wave["end"]["time"] - wave["start"]["time"]
+	distance = abs(wave["end"][axis] - wave["start"][axis])
+	# Returns board width per second
+	return distance/duration
+
+def process_actions():
+	axis = "x"
 	wave = check_wave(list(q.queue)[::-1], "x")
+	if not wave:
+		wave = check_wave(list(q.queue)[::-1], "y")
+		axis = "y"
+
 	if wave:
-		print("X WAVE")
+		print("{} WAVE".format(axis))
 		print(wave)
+		speed = calculate_speed(wave, axis)
+		print(speed)
+		colour = [255,0,0]
+		if(speed>1):colour = [255,255,0]
+		if(speed>2):colour = [0,255,0]
 		q.queue.clear()
-		if(wave["start"]["x"] > wave["end"]["x"]):
-			r = requests.post(url, data=json.dumps({"map":r_arrow}))
-		else:
-			r = requests.post(url, data=json.dumps({"map":l_arrow}))
+		if(axis=="x"):		
+			if(wave["start"]["x"] > wave["end"]["x"]):
+				r_arrow[0][0] = colour
+				r = requests.post(url, data=json.dumps({"map":r_arrow}))
+			else:
+				l_arrow[0][0] = colour
+				r = requests.post(url, data=json.dumps({"map":l_arrow}))
+		if(axis=="y"):			
+			if(wave["start"]["y"] > wave["end"]["y"]):
+				u_arrow[0][0] = colour
+				r = requests.post(url, data=json.dumps({"map":u_arrow}))
+			else:
+				d_arrow[0][0] = colour
+				r = requests.post(url, data=json.dumps({"map":d_arrow}))
 
-		print(r)
-	wave = check_wave(list(q.queue)[::-1], "y")
-	if wave:
-		print("Y WAVE")
-		print(wave)
-		q.queue.clear()
-		if(wave["start"]["y"] > wave["end"]["y"]):
-			r = requests.post(url, data=json.dumps({"map":u_arrow}))
-		else:
-			r = requests.post(url, data=json.dumps({"map":d_arrow}))
-
-
-pause()
+if __name__ == "__main__":
+	killer = Killer()
+	while not killer.shutdown:
+		time.sleep(0.5)
+		process_actions()
