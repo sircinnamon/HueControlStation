@@ -137,10 +137,8 @@ def pushed_left(event):
 	for l in lights:
 		b.set_light(l.light_id, command)
 
-def single_lightning():
-	global mode
-	if(mode!=None):return
-	print("Tapped north")
+def single_lightning(sound=False):
+	print("single_lightning - sound={}".format(sound))
 	start_state = {
 		"hue": lights[0].hue,
 		"saturation": lights[0].saturation,
@@ -154,7 +152,7 @@ def single_lightning():
 	group.hue = 45000
 	group.saturation = 100
 	time.sleep(4)
-	thunder_noise()
+	if(sound): thunder_noise()
 	light = lights[random.randint(0, len(lights)-1)]
 	light.transitiontime = 0.01
 	light.saturation = 100
@@ -169,10 +167,8 @@ def single_lightning():
 	group.brightness = start_state["brightness"]
 	group.on = start_state["on"]
 
-def double_lightning():
-	global mode
-	if(mode!=None):return
-	print("Tapped east")
+def double_lightning(sound=False):
+	print("double_lightning - sound={}".format(sound))
 	start_state = {
 		"hue": lights[0].hue,
 		"saturation": lights[0].saturation,
@@ -186,7 +182,7 @@ def double_lightning():
 	group.hue = 45000
 	group.saturation = 100
 	time.sleep(4)
-	thunder_noise()
+	if(sound): thunder_noise()
 	light = lights[random.randint(0, len(lights)-1)]
 	light.transitiontime = 0.01
 	light.saturation = 100
@@ -207,6 +203,14 @@ def double_lightning():
 	group.saturation = start_state["saturation"]
 	group.brightness = start_state["brightness"]
 	group.on = start_state["on"]
+
+def toggle_mode_lightning():
+	global mode
+	if(mode!=None):
+		mode=None
+	else:
+		mode="Lightning"
+	print("Set mode to {}".format(mode))
 
 def toggle_mode_magic_missile():
 	global mode
@@ -273,20 +277,33 @@ def init_chromecast():
 
 @skywriter.tap(position="north")
 def tap_north():
-	single_lightning()
+	global mode
+	if(mode=="Lightning"): double_lightning(sound=True)
 
 @skywriter.tap(position="east")
 def tap_east():
-	double_lightning()
+	global mode
+	if(mode==None or mode=="Lightning"):
+		toggle_mode_lightning()
+
+@skywriter.tap(position="south")
+def tap_south():
+	global mode
+	global mode_state
+	print(json.dumps(mode_state))
 
 @skywriter.tap(position="west")
 def tap_west():
-	toggle_mode_magic_missile()
+	global mode
+	if(mode==None or mode=="MagicMissile"):
+		toggle_mode_magic_missile()
+	if(mode=="Lightning"): single_lightning(sound=True)
 
 @skywriter.tap(position="center", repeat_rate=3)
 def tap_center():
 	global mode
 	if(mode=="MagicMissile"): magic_missile()
+	if(mode=="Lightning"): single_lightning(sound=False)
 
 media_controller = init_chromecast()
 print("ready")
