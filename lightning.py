@@ -7,6 +7,7 @@ import time, datetime
 import skywriter
 import signal
 from queue import Queue
+from collections import deque
 import requests
 import json
 import random
@@ -15,8 +16,11 @@ import pychromecast
 b = Bridge('10.0.0.80')
 b.connect() #Comment out after first run
 url = "http://10.0.0.34:8080/post/"
-group = Group(b, "Living room")
+# group = Group(b, "Living room")
+group = Group(b, "Office")
 lights = group.lights
+mode = None
+mode_state = {}
 
 @skywriter.flick()
 def flick(start, finish):
@@ -133,8 +137,9 @@ def pushed_left(event):
 	for l in lights:
 		b.set_light(l.light_id, command)
 
-@skywriter.tap(position="north")
-def tap_north():
+def single_lightning():
+	global mode
+	if(mode!=None):return
 	print("Tapped north")
 	start_state = {
 		"hue": lights[0].hue,
@@ -164,8 +169,9 @@ def tap_north():
 	group.brightness = start_state["brightness"]
 	group.on = start_state["on"]
 
-@skywriter.tap(position="east")
-def tap_north():
+def double_lightning():
+	global mode
+	if(mode!=None):return
 	print("Tapped east")
 	start_state = {
 		"hue": lights[0].hue,
@@ -202,6 +208,59 @@ def tap_north():
 	group.brightness = start_state["brightness"]
 	group.on = start_state["on"]
 
+def toggle_mode_magic_missile():
+	global mode
+	global mode_state
+	if(mode!=None):
+		mode=None
+		group.hue = mode_state["start_state"]["hue"]
+		group.saturation = mode_state["start_state"]["saturation"]
+		group.brightness = mode_state["start_state"]["brightness"]
+		group.on = mode_state["start_state"]["on"]
+		mode_state = {}
+	else:
+		mode="MagicMissile"
+		start_state = {
+			"hue": lights[0].hue,
+			"saturation": lights[0].saturation,
+			"brightness":lights[0].brightness,
+			"on": lights[0].on
+		}
+		light_queue = lights.copy()
+		random.shuffle(light_queue)
+		light_queue = deque(light_queue)
+		mode_state["start_state"] = start_state
+		mode_state["light_queue"] = light_queue
+		group.on = True
+		group.transitiontime = 4
+		group.brightness = 1
+		group.hue = 45000
+		group.saturation = 100
+	print("Set mode to {}".format(mode))
+
+# @skywriter.tap(position="center", repeat_rate=3)
+# def tap_center():
+def magic_missile():
+	global mode
+	global mode_state
+	if(mode!="MagicMissile"):return
+	light = mode_state["light_queue"].pop()
+	mode_state["light_queue"].appendleft(light)
+	def mm(light):
+		# magic_noise() #This doesn't "stack" well across multiple calls
+		light.transitiontime = 1
+		light.brightness = 255
+		light.hue = 55000
+		light.saturation = 255
+		light.transitiontime = 4
+		light.brightness = 1
+		time.sleep(0.4)
+		light.hue = 45000
+		light.saturation = 100
+	t = threading.Thread(target=mm, args=(light,))
+	t.start()
+
+
 def init_chromecast():
 	chromecasts = pychromecast.get_chromecasts()
 	cast = next(cc for cc in chromecasts if cc.device.friendly_name == "Living Room speaker")
@@ -212,11 +271,34 @@ def init_chromecast():
 	# mc.block_until_active()
 	return mc
 
+@skywriter.tap(position="north")
+def tap_north():
+	single_lightning()
+
+@skywriter.tap(position="east")
+def tap_east():
+	double_lightning()
+
+@skywriter.tap(position="west")
+def tap_west():
+	toggle_mode_magic_missile()
+
+@skywriter.tap(position="center", repeat_rate=3)
+def tap_center():
+	global mode
+	if(mode=="MagicMissile"): magic_missile()
+
 media_controller = init_chromecast()
 print("ready")
 def thunder_noise():
 	global media_controller
+	if(media_controller == None): return
 	media_controller.play_media('http://sir-cinnamon.com/dnd/thunder.mp3', 'audio/mp3')
+	media_controller.block_until_active()
+def magic_noise():
+	global media_controller
+	if(media_controller == None): return
+	media_controller.play_media('http://sir-cinnamon.com/dnd/magic.mp3', 'audio/mp3')
 	media_controller.block_until_active()
 
 if __name__ == "__main__":
