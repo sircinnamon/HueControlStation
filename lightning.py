@@ -22,26 +22,6 @@ lights = group.lights
 mode = None
 mode_state = {}
 
-@skywriter.flick()
-def flick(start, finish):
-	o = start[0]+finish[0]
-	if(o == "sn"):
-		pushed_up("sn")
-	elif(o == "ns"):
-		pushed_down("ns")
-	elif(o == "we"):
-		pushed_right("we")
-	elif(o == "ew"):
-		pushed_left("ew")
-
-@skywriter.airwheel()
-def brightness(deg):
-	bri = int(lights[0].brightness + (deg/5))
-	bri = max(0, min(255, bri))
-	print(bri)
-	for l in lights:
-		l.brightness = bri
-
 fire_effect = [
 	{
 		"hue": 0, # Red
@@ -275,6 +255,14 @@ def init_chromecast():
 	# mc.block_until_active()
 	return mc
 
+def toggle_mode_colour():
+	global mode
+	if(mode!=None):
+		mode=None
+	else:
+		mode="Colour"
+	print("Set mode to {}".format(mode))
+
 @skywriter.tap(position="north")
 def tap_north():
 	global mode
@@ -290,6 +278,8 @@ def tap_east():
 def tap_south():
 	global mode
 	global mode_state
+	if(mode==None or mode=="Colour"):
+		toggle_mode_colour()
 	print(json.dumps(mode_state))
 
 @skywriter.tap(position="west")
@@ -304,6 +294,30 @@ def tap_center():
 	global mode
 	if(mode=="MagicMissile"): magic_missile()
 	if(mode=="Lightning"): single_lightning(sound=False)
+
+@skywriter.flick()
+def flick(start, finish):
+	global mode
+	if(mode=="Colour"):
+		o = start[0]+finish[0]
+		if(o == "sn"):
+			pushed_up("sn")
+		elif(o == "ns"):
+			pushed_down("ns")
+		elif(o == "we"):
+			pushed_right("we")
+		elif(o == "ew"):
+			pushed_left("ew")
+
+@skywriter.airwheel()
+def brightness(deg):
+	global mode
+	if(mode=="Colour"):
+		bri = int(lights[0].brightness + (deg/5))
+		bri = max(0, min(255, bri))
+		print(bri)
+		for l in lights:
+			l.brightness = bri
 
 media_controller = init_chromecast()
 print("ready")
