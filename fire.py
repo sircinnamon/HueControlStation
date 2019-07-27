@@ -24,10 +24,10 @@ media_controller = None
 
 fire_graph = {
 	"base_red_1": {
-		"transition_to": 3,
-		"hue": 1,
-		"saturation": 127,
-		"brightness": 200,
+		"transition_to": 1,
+		"hue": 936,
+		"saturation": 253,
+		"brightness": 141,
 		"edges": [
 			{
 				"dest": "base_red_2",
@@ -40,10 +40,10 @@ fire_graph = {
 		]
 	},
 	"base_red_2": {
-		"transition_to": 3,
-		"hue": 1,
-		"saturation": 150,
-		"brightness": 225,
+		"transition_to": 1,
+		"hue": 64988,
+		"saturation": 95,
+		"brightness": 203,
 		"edges": [
 			{
 				"dest": "base_red_3",
@@ -52,10 +52,10 @@ fire_graph = {
 		]
 	},
 	"base_red_3": {
-		"transition_to": 3,
-		"hue": 1,
-		"saturation": 100,
-		"brightness": 150,
+		"transition_to": 1,
+		"hue": 321,
+		"saturation": 247,
+		"brightness": 45,
 		"edges": [
 			{
 				"dest": "base_red_1",
@@ -64,10 +64,10 @@ fire_graph = {
 		]
 	},
 	"flicker_orange": {
-		"transition_to": 3,
-		"hue": 1,
-		"saturation": 130,
-		"brightness": 225,
+		"transition_to": 0.2,
+		"hue": 5363,
+		"saturation": 254,
+		"brightness": 200,
 		"edges": [
 			{
 				"dest": "flicker_yellow",
@@ -76,10 +76,10 @@ fire_graph = {
 		]
 	},
 	"flicker_yellow": {
-		"transition_to": 3,
-		"hue": 1,
-		"saturation": 130,
-		"brightness": 225,
+		"transition_to": 0.2,
+		"hue": 8517,
+		"saturation": 92,
+		"brightness": 254,
 		"edges": [
 			{
 				"dest": "base_red_1",
@@ -103,7 +103,7 @@ def get_next_node(curr_id, graph):
 def follow_graph_independent(graph, lights):
 	# TODO: Fuzz timings somehow to reduce sync'd transitions?
 	# TODO: signal thread to return to original_state and die?
-    def light_thread(graph, light)
+    def light_thread(graph, light):
         original_state = {
             "on": light.on,
             "brightness": light.brightness,
@@ -111,16 +111,18 @@ def follow_graph_independent(graph, lights):
             "saturation": light.saturation
         }
         light.on = True
-        current_node = graph[list(graph.keys())[0]]
+        current_node = list(graph.keys())[0]
         while True:
             command = {
-                "transitiontime": (graph[current_node]["transition_to"] * 10)if "transition_to" in graph[current_node] else light.transitiontime,
+                "transitiontime": int(graph[current_node]["transition_to"] * 10) if "transition_to" in graph[current_node] else light.transitiontime,
                 "hue": graph[current_node]["hue"] if "hue" in graph[current_node] else light.hue,
                 "sat": graph[current_node]["saturation"] if "saturation" in graph[current_node] else light.saturation,
                 "bri": graph[current_node]["brightness"] if "brightness" in graph[current_node] else light.brightness
             }
+            print("{} set to {}".format(light.light_id, current_node))
+            print(command["transitiontime"])
             b.set_light(light.light_id, command)
-            time.sleep(command["transitiontime"])
+            time.sleep(command["transitiontime"]/10)
             current_node = get_next_node(current_node, graph)
 
     for l in lights:
