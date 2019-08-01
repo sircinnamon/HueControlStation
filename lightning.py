@@ -157,7 +157,6 @@ def toggle_mode_magic_missile():
 	print("Set mode to {}".format(mode))
 
 def magic_missile():
-	global mode
 	global mode_state
 	light = mode_state["light_queue"].pop()
 	mode_state["light_queue"].appendleft(light)
